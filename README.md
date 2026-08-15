@@ -95,11 +95,30 @@ Re-run with a different algorithm on the same workload to compare — Round Robi
 | 5 | Render | 4 | 12 | 5 |
 | 6 | Ping | 5 | 2 | 1 |
 
+## Running the tests
+
+The engine is decoupled from the GUI, so it is tested without a display:
+
+```bash
+python -m unittest discover -s tests -t . -v
+```
+
+23 tests cover the `Process` dataclass and its computed turnaround time, each
+scheduler's ordering rule, the heap tiebreakers that keep equal keys from
+comparing `Process` objects, Round Robin's quantum slicing and requeueing, and
+the idle-gap clock jump. A cross-scheduler block asserts invariants that must
+hold for all four: total CPU time equals total burst time, no process starts
+before it arrives, timeline slices never overlap, and each completion time is
+the end of that process's last slice.
+
 ## Project structure
 
 ```
 dynamic-task-manager-simulator/
-├── dynamic_task_manager.py   # Scheduling engine + Tkinter GUI
+├── dynamic_task_manager.py         # Scheduling engine + Tkinter GUI
+├── tests/
+│   └── test_scheduling_engine.py   # unittest coverage for the schedulers
+├── .github/workflows/tests.yml     # CI: runs the suite on every push
 ├── README.md
 └── .gitignore
 ```
