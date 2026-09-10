@@ -99,69 +99,78 @@ class Scheduler(ABC):
 
 
 class FCFSScheduler(Scheduler):
+    """Runs ready processes strictly in arrival order, each to completion."""
+
     name = "First-Come-First-Served"
 
-    def __init__(self, processes):
+    def __init__(self, processes: List[Process]):
         super().__init__(processes)
         self._queue: deque[Process] = deque()
 
-    def _push(self, process): self._queue.append(process)
-    def _pop(self): return self._queue.popleft()
-    def _has_ready(self): return len(self._queue) > 0
-    def _run_slice(self, process): self._run_to_completion(process)
+    def _push(self, process: Process) -> None: self._queue.append(process)
+    def _pop(self) -> Process: return self._queue.popleft()
+    def _has_ready(self) -> bool: return len(self._queue) > 0
+    def _run_slice(self, process: Process) -> None: self._run_to_completion(process)
 
 
 class SJFScheduler(Scheduler):
+    """Non-preemptive: always picks the ready process with the shortest burst time."""
+
     name = "Shortest Job First"
 
-    def __init__(self, processes):
+    def __init__(self, processes: List[Process]):
         super().__init__(processes)
         self._counter = itertools.count()
         self._heap: list = []
 
-    def _push(self, process):
+    def _push(self, process: Process) -> None:
         heapq.heappush(self._heap, (process.burst_time, next(self._counter), process))
 
-    def _pop(self):
+    def _pop(self) -> Process:
         _, _, process = heapq.heappop(self._heap)
         return process
 
-    def _has_ready(self): return len(self._heap) > 0
-    def _run_slice(self, process): self._run_to_completion(process)
+    def _has_ready(self) -> bool: return len(self._heap) > 0
+    def _run_slice(self, process: Process) -> None: self._run_to_completion(process)
 
 
 class PriorityScheduler(Scheduler):
+    """Non-preemptive: always picks the ready process with the lowest priority number."""
+
     name = "Priority"
 
-    def __init__(self, processes):
+    def __init__(self, processes: List[Process]):
         super().__init__(processes)
         self._counter = itertools.count()
         self._heap: list = []
 
-    def _push(self, process):
+    def _push(self, process: Process) -> None:
         heapq.heappush(self._heap, (process.priority, next(self._counter), process))
 
-    def _pop(self):
+    def _pop(self) -> Process:
         _, _, process = heapq.heappop(self._heap)
         return process
 
-    def _has_ready(self): return len(self._heap) > 0
-    def _run_slice(self, process): self._run_to_completion(process)
+    def _has_ready(self) -> bool: return len(self._heap) > 0
+    def _run_slice(self, process: Process) -> None: self._run_to_completion(process)
 
 
 class RoundRobinScheduler(Scheduler):
+    """Preemptive: each ready process gets at most `quantum` time units per turn
+    before being requeued behind whatever else has since become ready."""
+
     name = "Round Robin"
 
-    def __init__(self, processes, quantum: int = 3):
+    def __init__(self, processes: List[Process], quantum: int = 3):
         super().__init__(processes)
         self.quantum = quantum
         self._queue: deque[Process] = deque()
 
-    def _push(self, process): self._queue.append(process)
-    def _pop(self): return self._queue.popleft()
-    def _has_ready(self): return len(self._queue) > 0
+    def _push(self, process: Process) -> None: self._queue.append(process)
+    def _pop(self) -> Process: return self._queue.popleft()
+    def _has_ready(self) -> bool: return len(self._queue) > 0
 
-    def _run_slice(self, process):
+    def _run_slice(self, process: Process) -> None:
         if process.start_time is None:
             process.start_time = self.time
             process.waiting_time = self.time - process.arrival_time
