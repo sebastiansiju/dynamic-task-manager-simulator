@@ -41,6 +41,7 @@ class Process:
 
     @property
     def turnaround_time(self) -> Optional[int]:
+        """Time from arrival to completion, or None while still running."""
         if self.completion_time is None:
             return None
         return self.completion_time - self.arrival_time
@@ -52,7 +53,7 @@ class Scheduler(ABC):
 
     name = "Base"
 
-    def __init__(self, processes: List[Process]):
+    def __init__(self, processes: List[Process]) -> None:
         self.incoming = sorted(processes, key=lambda p: p.arrival_time)
         self.completed: List[Process] = []
         self.timeline: List[Tuple[int, str, int, int]] = []  # pid, name, start, end
@@ -71,6 +72,14 @@ class Scheduler(ABC):
     def _run_slice(self, process: Process) -> None: ...
 
     def run(self) -> List[Process]:
+        """Advance the simulation until every process has completed.
+
+        Repeatedly admits any processes that have arrived by the current
+        time into the ready structure, dispatches the next one via the
+        subclass's `_push`/`_pop`/`_run_slice`, and fast-forwards the
+        clock to the next arrival when nothing is ready to run. Returns
+        the completed processes.
+        """
         pending = deque(self.incoming)
         while pending or self._has_ready():
             while pending and pending[0].arrival_time <= self.time:
@@ -103,7 +112,7 @@ class FCFSScheduler(Scheduler):
 
     name = "First-Come-First-Served"
 
-    def __init__(self, processes: List[Process]):
+    def __init__(self, processes: List[Process]) -> None:
         super().__init__(processes)
         self._queue: deque[Process] = deque()
 
@@ -118,7 +127,7 @@ class SJFScheduler(Scheduler):
 
     name = "Shortest Job First"
 
-    def __init__(self, processes: List[Process]):
+    def __init__(self, processes: List[Process]) -> None:
         super().__init__(processes)
         self._counter = itertools.count()
         self._heap: list = []
@@ -139,7 +148,7 @@ class PriorityScheduler(Scheduler):
 
     name = "Priority"
 
-    def __init__(self, processes: List[Process]):
+    def __init__(self, processes: List[Process]) -> None:
         super().__init__(processes)
         self._counter = itertools.count()
         self._heap: list = []
@@ -161,7 +170,7 @@ class RoundRobinScheduler(Scheduler):
 
     name = "Round Robin"
 
-    def __init__(self, processes: List[Process], quantum: int = 3):
+    def __init__(self, processes: List[Process], quantum: int = 3) -> None:
         super().__init__(processes)
         self.quantum = quantum
         self._queue: deque[Process] = deque()
@@ -211,7 +220,11 @@ GANTT_COLORS = [
 # ===========================================================================
 
 class TaskManagerGUI(tk.Tk):
-    def __init__(self):
+    """Tkinter front end: lets the user build a process list, pick a
+    scheduling algorithm, run it against the engine above, and view the
+    resulting wait/turnaround times and a Gantt chart of the timeline."""
+
+    def __init__(self) -> None:
         super().__init__()
         self.title("Dynamic Task Manager Simulator")
         self.geometry("980x680")
