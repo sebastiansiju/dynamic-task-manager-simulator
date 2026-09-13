@@ -171,6 +171,8 @@ class RoundRobinScheduler(Scheduler):
     name = "Round Robin"
 
     def __init__(self, processes: List[Process], quantum: int = 3) -> None:
+        if quantum <= 0:
+            raise ValueError(f"quantum must be a positive integer, got {quantum!r}")
         super().__init__(processes)
         self.quantum = quantum
         self._queue: deque[Process] = deque()

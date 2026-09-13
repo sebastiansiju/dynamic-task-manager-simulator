@@ -171,6 +171,14 @@ class RoundRobinTests(unittest.TestCase):
             self.assertEqual(p.remaining_time, 0)
             self.assertIsNotNone(p.completion_time)
 
+    def test_non_positive_quantum_is_rejected(self):
+        """A quantum <= 0 would never shrink remaining_time to zero, hanging
+        run() in an infinite requeue loop -- reject it up front instead."""
+        procs = build([(1, "A", 0, 5, 0)])
+        for bad_quantum in (0, -1):
+            with self.subTest(quantum=bad_quantum):
+                self.assertRaises(ValueError, RoundRobinScheduler, procs, quantum=bad_quantum)
+
 
 class CrossSchedulerTests(unittest.TestCase):
     SPEC = [(1, "A", 0, 6, 2), (2, "B", 2, 4, 1), (3, "C", 4, 8, 3)]
