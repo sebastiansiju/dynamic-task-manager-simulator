@@ -164,13 +164,16 @@ class PriorityScheduler(Scheduler):
     def _run_slice(self, process: Process) -> None: self._run_to_completion(process)
 
 
+DEFAULT_QUANTUM = 3
+
+
 class RoundRobinScheduler(Scheduler):
     """Preemptive: each ready process gets at most `quantum` time units per turn
     before being requeued behind whatever else has since become ready."""
 
     name = "Round Robin"
 
-    def __init__(self, processes: List[Process], quantum: int = 3) -> None:
+    def __init__(self, processes: List[Process], quantum: int = DEFAULT_QUANTUM) -> None:
         if quantum <= 0:
             raise ValueError(f"quantum must be a positive integer, got {quantum!r}")
         super().__init__(processes)
@@ -215,6 +218,17 @@ GANTT_COLORS = [
     "#8172B2", "#937860", "#DA8BC3", "#8C8C8C",
     "#CCB974", "#64B5CD",
 ]
+
+# Gantt chart layout, in canvas pixels
+GANTT_MIN_WIDTH = 600
+GANTT_CANVAS_HEIGHT = 180
+GANTT_MARGIN_LEFT = 50
+GANTT_MARGIN_RIGHT = 20
+GANTT_BAR_TOP = 30
+GANTT_BAR_HEIGHT = 40
+GANTT_AXIS_GAP = 20  # vertical gap between the bars and the time axis line
+GANTT_MAX_AXIS_TICKS = 15
+GANTT_MIN_LABEL_SLICE_WIDTH = 22  # slices narrower than this skip their text label
 
 
 # ===========================================================================
@@ -303,7 +317,7 @@ class TaskManagerGUI(tk.Tk):
         algo_combo.bind("<<ComboboxSelected>>", self._on_algo_change)
 
         self.quantum_label = ttk.Label(algo_frame, text="Time quantum:")
-        self.quantum_var = tk.StringVar(value="3")
+        self.quantum_var = tk.StringVar(value=str(DEFAULT_QUANTUM))
         self.quantum_entry = ttk.Entry(algo_frame, textvariable=self.quantum_var, width=6)
         self._toggle_quantum_field()
 
@@ -354,7 +368,7 @@ class TaskManagerGUI(tk.Tk):
         gantt_frame.grid(row=2, column=0, sticky="nsew", pady=(10, 0))
         parent.rowconfigure(2, weight=1)
 
-        self.gantt_canvas = tk.Canvas(gantt_frame, background="white", height=180)
+        self.gantt_canvas = tk.Canvas(gantt_frame, background="white", height=GANTT_CANVAS_HEIGHT)
         self.gantt_canvas.pack(fill="both", expand=True)
 
     # ------------------------------------------------------------ actions
@@ -462,12 +476,12 @@ class TaskManagerGUI(tk.Tk):
         canvas.delete("all")
         canvas.update_idletasks()
 
-        width = max(canvas.winfo_width(), 600)
-        height = max(canvas.winfo_height(), 160)
-        margin_left = 50
-        margin_right = 20
-        bar_top = 30
-        bar_height = 40
+        width = max(canvas.winfo_width(), GANTT_MIN_WIDTH)
+        margin_left = GANTT_MARGIN_LEFT
+        margin_right = GANTT_MARGIN_RIGHT
+        bar_top = GANTT_BAR_TOP
+        bar_height = GANTT_BAR_HEIGHT
+        axis_y = bar_top + bar_height + GANTT_AXIS_GAP
 
         makespan = max(scheduler.time, 1)
         usable_width = width - margin_left - margin_right
@@ -479,14 +493,13 @@ class TaskManagerGUI(tk.Tk):
                 pid_color[pid] = GANTT_COLORS[(pid - 1) % len(GANTT_COLORS)]
 
         # time axis
-        canvas.create_line(margin_left, bar_top + bar_height + 20,
-                            width - margin_right, bar_top + bar_height + 20, fill="#888")
-        step = max(1, makespan // 15)
+        canvas.create_line(margin_left, axis_y, width - margin_right, axis_y, fill="#888")
+        step = max(1, makespan // GANTT_MAX_AXIS_TICKS)
         t = 0
         while t <= makespan:
             x = margin_left + t * px_per_unit
-            canvas.create_line(x, bar_top + bar_height + 15, x, bar_top + bar_height + 25, fill="#888")
-            canvas.create_text(x, bar_top + bar_height + 32, text=str(t), font=("TkDefaultFont", 8))
+            canvas.create_line(x, axis_y - 5, x, axis_y + 5, fill="#888")
+            canvas.create_text(x, axis_y + 12, text=str(t), font=("TkDefaultFont", 8))
             t += step
 
         # execution slices
@@ -496,7 +509,7 @@ class TaskManagerGUI(tk.Tk):
             color = pid_color[pid]
             canvas.create_rectangle(x1, bar_top, x2, bar_top + bar_height,
                                      fill=color, outline="white")
-            if x2 - x1 > 22:
+            if x2 - x1 > GANTT_MIN_LABEL_SLICE_WIDTH:
                 canvas.create_text((x1 + x2) / 2, bar_top + bar_height / 2,
                                     text=name, fill="white", font=("TkDefaultFont", 8, "bold"))
 
