@@ -69,7 +69,11 @@ class Scheduler(ABC):
     def _has_ready(self) -> bool: ...
 
     @abstractmethod
-    def _run_slice(self, process: Process) -> None: ...
+    def _run_slice(self, process: Process) -> Optional[Process]:
+        """Run one slice of `process`. Returns the process itself if it was
+        preempted and still needs another turn, or None if it ran to
+        completion."""
+        ...
 
     def run(self) -> List[Process]:
         """Advance the simulation until every process has completed.
@@ -77,18 +81,24 @@ class Scheduler(ABC):
         Repeatedly admits any processes that have arrived by the current
         time into the ready structure, dispatches the next one via the
         subclass's `_push`/`_pop`/`_run_slice`, and fast-forwards the
-        clock to the next arrival when nothing is ready to run. Returns
-        the completed processes.
+        clock to the next arrival when nothing is ready to run. A process
+        preempted mid-slice is requeued only after that slice's arrivals
+        have been admitted, so it doesn't jump ahead of processes that
+        were waiting for it to finish. Returns the completed processes.
         """
         pending = deque(self.incoming)
-        while pending or self._has_ready():
+        requeue: Optional[Process] = None
+        while pending or self._has_ready() or requeue is not None:
             while pending and pending[0].arrival_time <= self.time:
                 p = pending.popleft()
                 p.state = ProcessState.READY
                 self._push(p)
+            if requeue is not None:
+                self._push(requeue)
+                requeue = None
             if self._has_ready():
                 p = self._pop()
-                self._run_slice(p)
+                requeue = self._run_slice(p)
             else:
                 self.time = pending[0].arrival_time
         return self.completed
@@ -119,7 +129,9 @@ class FCFSScheduler(Scheduler):
     def _push(self, process: Process) -> None: self._queue.append(process)
     def _pop(self) -> Process: return self._queue.popleft()
     def _has_ready(self) -> bool: return len(self._queue) > 0
-    def _run_slice(self, process: Process) -> None: self._run_to_completion(process)
+    def _run_slice(self, process: Process) -> Optional[Process]:
+        self._run_to_completion(process)
+        return None
 
 
 class SJFScheduler(Scheduler):
@@ -140,7 +152,9 @@ class SJFScheduler(Scheduler):
         return process
 
     def _has_ready(self) -> bool: return len(self._heap) > 0
-    def _run_slice(self, process: Process) -> None: self._run_to_completion(process)
+    def _run_slice(self, process: Process) -> Optional[Process]:
+        self._run_to_completion(process)
+        return None
 
 
 class PriorityScheduler(Scheduler):
@@ -161,7 +175,9 @@ class PriorityScheduler(Scheduler):
         return process
 
     def _has_ready(self) -> bool: return len(self._heap) > 0
-    def _run_slice(self, process: Process) -> None: self._run_to_completion(process)
+    def _run_slice(self, process: Process) -> Optional[Process]:
+        self._run_to_completion(process)
+        return None
 
 
 DEFAULT_QUANTUM = 3
@@ -184,7 +200,7 @@ class RoundRobinScheduler(Scheduler):
     def _pop(self) -> Process: return self._queue.popleft()
     def _has_ready(self) -> bool: return len(self._queue) > 0
 
-    def _run_slice(self, process: Process) -> None:
+    def _run_slice(self, process: Process) -> Optional[Process]:
         if process.start_time is None:
             process.start_time = self.time
             process.waiting_time = self.time - process.arrival_time
@@ -200,9 +216,10 @@ class RoundRobinScheduler(Scheduler):
             process.completion_time = self.time
             process.state = ProcessState.COMPLETED
             self.completed.append(process)
-        else:
-            process.state = ProcessState.READY
-            self._push(process)
+            return None
+
+        process.state = ProcessState.READY
+        return process
 
 
 ALGORITHMS = {

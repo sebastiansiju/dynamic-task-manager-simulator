@@ -171,6 +171,18 @@ class RoundRobinTests(unittest.TestCase):
             self.assertEqual(p.remaining_time, 0)
             self.assertIsNotNone(p.completion_time)
 
+    def test_arrival_during_a_slice_is_queued_ahead_of_the_preempted_process(self):
+        """A process that arrives while another is mid-slice must get its
+        turn as soon as that slice ends, not after the preempted process
+        is allowed to run a second consecutive slice ahead of it."""
+        s = RoundRobinScheduler(build([
+            (1, "A", 0, 10, 0), (2, "B", 2, 3, 0),
+        ]), quantum=3)
+        s.run()
+        self.assertEqual(order_of(s), [1, 2])
+        self.assertEqual(s.timeline[0], (1, "A", 0, 3))
+        self.assertEqual(s.timeline[1], (2, "B", 3, 6))
+
     def test_non_positive_quantum_is_rejected(self):
         """A quantum <= 0 would never shrink remaining_time to zero, hanging
         run() in an infinite requeue loop -- reject it up front instead."""
