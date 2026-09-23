@@ -103,14 +103,16 @@ The engine is decoupled from the GUI, so it is tested without a display:
 python -m unittest discover -s tests -t . -v
 ```
 
-24 tests cover the `Process` dataclass and its computed turnaround time, each
-scheduler's ordering rule, the heap tiebreakers that keep equal keys from
-comparing `Process` objects, Round Robin's quantum slicing and requeueing
-(including rejecting a non-positive quantum, which would otherwise hang the
-simulation loop), and the idle-gap clock jump. A cross-scheduler block asserts
-invariants that must hold for all four: total CPU time equals total burst
-time, no process starts before it arrives, timeline slices never overlap, and
-each completion time is the end of that process's last slice.
+27 tests cover the `Process` dataclass and its computed turnaround time,
+including rejecting a non-positive burst time or a negative arrival time
+(either would corrupt the simulation clock), each scheduler's ordering rule,
+the heap tiebreakers that keep equal keys from comparing `Process` objects,
+Round Robin's quantum slicing and requeueing (including rejecting a
+non-positive quantum, which would otherwise hang the simulation loop), and
+the idle-gap clock jump. A cross-scheduler block asserts invariants that must
+hold for all four: total CPU time equals total burst time, no process starts
+before it arrives, timeline slices never overlap, and each completion time is
+the end of that process's last slice.
 
 ## Project structure
 

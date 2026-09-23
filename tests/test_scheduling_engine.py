@@ -53,6 +53,19 @@ class ProcessTests(unittest.TestCase):
     def test_default_priority_is_zero(self):
         self.assertEqual(Process(pid=1, name="A", arrival_time=0, burst_time=1).priority, 0)
 
+    def test_non_positive_burst_time_is_rejected(self):
+        """A burst_time <= 0 would run the clock backwards in
+        Scheduler._run_to_completion (self.time += remaining_time) and
+        corrupt every downstream timestamp -- reject it up front instead."""
+        for bad_burst in (0, -3):
+            with self.subTest(burst_time=bad_burst):
+                self.assertRaises(ValueError, Process, pid=1, name="A",
+                                   arrival_time=0, burst_time=bad_burst)
+
+    def test_negative_arrival_time_is_rejected(self):
+        self.assertRaises(ValueError, Process, pid=1, name="A",
+                           arrival_time=-1, burst_time=5)
+
 
 class FCFSTests(unittest.TestCase):
     def test_runs_in_arrival_order(self):

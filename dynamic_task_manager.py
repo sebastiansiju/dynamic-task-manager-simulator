@@ -37,6 +37,10 @@ class Process:
     waiting_time: int = field(default=0, init=False)
 
     def __post_init__(self):
+        if self.burst_time <= 0:
+            raise ValueError(f"burst_time must be a positive integer, got {self.burst_time!r}")
+        if self.arrival_time < 0:
+            raise ValueError(f"arrival_time must be >= 0, got {self.arrival_time!r}")
         self.remaining_time = self.burst_time
 
     @property
