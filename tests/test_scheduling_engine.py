@@ -196,6 +196,20 @@ class RoundRobinTests(unittest.TestCase):
         self.assertEqual(s.timeline[0], (1, "A", 0, 3))
         self.assertEqual(s.timeline[1], (2, "B", 3, 6))
 
+    def test_waiting_time_accounts_for_every_preemption(self):
+        """waiting_time must be the total time spent ready-but-not-running,
+        not just the wait before the process's first slice -- a process
+        preempted and requeued more than once waits again between later
+        slices too."""
+        s = RoundRobinScheduler(build([(1, "A", 0, 6, 0), (2, "B", 0, 6, 0)]), quantum=2)
+        s.run()
+        by_pid = {p.pid: p for p in s.completed}
+        for pid, p in by_pid.items():
+            with self.subTest(pid=pid):
+                self.assertEqual(p.waiting_time, p.turnaround_time - p.burst_time)
+        self.assertEqual(by_pid[1].waiting_time, 4)
+        self.assertEqual(by_pid[2].waiting_time, 6)
+
     def test_non_positive_quantum_is_rejected(self):
         """A quantum <= 0 would never shrink remaining_time to zero, hanging
         run() in an infinite requeue loop -- reject it up front instead."""

@@ -205,9 +205,18 @@ class RoundRobinScheduler(Scheduler):
     def _has_ready(self) -> bool: return len(self._queue) > 0
 
     def _run_slice(self, process: Process) -> Optional[Process]:
+        """Run one quantum-bounded slice of `process`.
+
+        Unlike the non-preemptive schedulers, a Round Robin process can be
+        requeued and dispatched several times before it finishes, so its
+        waiting_time can't be captured at first dispatch the way the other
+        schedulers do -- that would only count the wait before its first
+        slice and ignore every wait between later slices. Instead it's
+        derived once the process completes, as the total time in the
+        system minus the time actually spent running.
+        """
         if process.start_time is None:
             process.start_time = self.time
-            process.waiting_time = self.time - process.arrival_time
         process.state = ProcessState.RUNNING
 
         slice_len = min(self.quantum, process.remaining_time)
@@ -218,6 +227,7 @@ class RoundRobinScheduler(Scheduler):
 
         if process.remaining_time <= 0:
             process.completion_time = self.time
+            process.waiting_time = self.time - process.arrival_time - process.burst_time
             process.state = ProcessState.COMPLETED
             self.completed.append(process)
             return None
