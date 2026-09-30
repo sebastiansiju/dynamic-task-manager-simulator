@@ -8,7 +8,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
 from tkinter import messagebox, ttk
-from typing import List, Optional, Tuple
+from typing import Iterator, List, Optional, Tuple
 
 
 
@@ -36,7 +36,7 @@ class Process:
     completion_time: Optional[int] = field(default=None, init=False)
     waiting_time: int = field(default=0, init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.burst_time <= 0:
             raise ValueError(f"burst_time must be a positive integer, got {self.burst_time!r}")
         if self.arrival_time < 0:
@@ -145,8 +145,8 @@ class SJFScheduler(Scheduler):
 
     def __init__(self, processes: List[Process]) -> None:
         super().__init__(processes)
-        self._counter = itertools.count()
-        self._heap: list = []
+        self._counter: Iterator[int] = itertools.count()
+        self._heap: List[Tuple[int, int, Process]] = []
 
     def _push(self, process: Process) -> None:
         heapq.heappush(self._heap, (process.burst_time, next(self._counter), process))
@@ -168,8 +168,8 @@ class PriorityScheduler(Scheduler):
 
     def __init__(self, processes: List[Process]) -> None:
         super().__init__(processes)
-        self._counter = itertools.count()
-        self._heap: list = []
+        self._counter: Iterator[int] = itertools.count()
+        self._heap: List[Tuple[int, int, Process]] = []
 
     def _push(self, process: Process) -> None:
         heapq.heappush(self._heap, (process.priority, next(self._counter), process))
@@ -549,7 +549,8 @@ class TaskManagerGUI(tk.Tk):
                             font=("TkDefaultFont", 9, "italic"))
 
 
-def main():
+def main() -> None:
+    """Launch the Task Manager Simulator GUI."""
     app = TaskManagerGUI()
     app.mainloop()
 
