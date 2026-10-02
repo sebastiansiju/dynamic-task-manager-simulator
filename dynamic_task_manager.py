@@ -282,7 +282,7 @@ class TaskManagerGUI(tk.Tk):
         self._load_sample_processes()
 
     # ---------------------------------------------------------------- layout
-    def _build_layout(self):
+    def _build_layout(self) -> None:
         root = ttk.Frame(self, padding=10)
         root.pack(fill="both", expand=True)
         root.columnconfigure(0, weight=0)
@@ -301,7 +301,7 @@ class TaskManagerGUI(tk.Tk):
         self._build_results_panel(right)
 
     # ---- left panel: add processes + choose algorithm -----------------
-    def _build_input_panel(self, parent):
+    def _build_input_panel(self, parent: ttk.Frame) -> None:
         form = ttk.LabelFrame(parent, text="Add Process", padding=10)
         form.pack(fill="x")
 
@@ -355,15 +355,15 @@ class TaskManagerGUI(tk.Tk):
         ttk.Button(parent, text="▶  Run Simulation", command=self._run_simulation).pack(
             fill="x", pady=(10, 0), ipady=4)
 
-    def _labeled_entry(self, parent, label, var, row):
+    def _labeled_entry(self, parent: ttk.Frame, label: str, var: tk.StringVar, row: int) -> None:
         ttk.Label(parent, text=label).grid(row=row, column=0, sticky="w", pady=2)
         ttk.Entry(parent, textvariable=var, width=14).grid(row=row, column=1, sticky="ew", pady=2, padx=(6, 0))
         parent.columnconfigure(1, weight=1)
 
-    def _on_algo_change(self, _event=None):
+    def _on_algo_change(self, _event: Optional[tk.Event] = None) -> None:
         self._toggle_quantum_field()
 
-    def _toggle_quantum_field(self):
+    def _toggle_quantum_field(self) -> None:
         if self.algo_var.get() == "Round Robin":
             self.quantum_label.pack(anchor="w", pady=(6, 0))
             self.quantum_entry.pack(anchor="w")
@@ -372,7 +372,7 @@ class TaskManagerGUI(tk.Tk):
             self.quantum_entry.pack_forget()
 
     # ---- right panel: results table + gantt chart ----------------------
-    def _build_results_panel(self, parent):
+    def _build_results_panel(self, parent: ttk.Frame) -> None:
         summary = ttk.LabelFrame(parent, text="Summary", padding=10)
         summary.grid(row=0, column=0, sticky="ew")
         self.summary_var = tk.StringVar(value="Add processes and click Run Simulation.")
@@ -403,7 +403,7 @@ class TaskManagerGUI(tk.Tk):
         self.gantt_canvas.pack(fill="both", expand=True)
 
     # ------------------------------------------------------------ actions
-    def _add_process(self):
+    def _add_process(self) -> None:
         name = self.name_var.get().strip() or f"Task{self._next_pid}"
         try:
             arrival = int(self.arrival_var.get())
@@ -420,16 +420,16 @@ class TaskManagerGUI(tk.Tk):
         self._next_pid += 1
         self.name_var.set("")
 
-    def _remove_selected(self):
+    def _remove_selected(self) -> None:
         for item in self.process_tree.selection():
             self.process_tree.delete(item)
 
-    def _clear_processes(self):
+    def _clear_processes(self) -> None:
         for item in self.process_tree.get_children():
             self.process_tree.delete(item)
         self._next_pid = 1
 
-    def _load_sample_processes(self):
+    def _load_sample_processes(self) -> None:
         self._clear_processes()
         sample = [
             ("Compile", 0, 8, 3),
@@ -444,14 +444,14 @@ class TaskManagerGUI(tk.Tk):
             self._next_pid += 1
 
     def _collect_processes(self) -> List[Process]:
-        processes = []
+        processes: List[Process] = []
         for item in self.process_tree.get_children():
             pid, name, arrival, burst, priority = self.process_tree.item(item, "values")
             processes.append(Process(pid=int(pid), name=name, arrival_time=int(arrival),
                                       burst_time=int(burst), priority=int(priority)))
         return processes
 
-    def _run_simulation(self):
+    def _run_simulation(self) -> None:
         processes = self._collect_processes()
         if not processes:
             messagebox.showwarning("No processes", "Add at least one process before running.")
@@ -476,7 +476,7 @@ class TaskManagerGUI(tk.Tk):
         self._render_results(scheduler)
 
     # ------------------------------------------------------------ render
-    def _render_results(self, scheduler: Scheduler):
+    def _render_results(self, scheduler: Scheduler) -> None:
         for row in self.results_tree.get_children():
             self.results_tree.delete(row)
 
@@ -502,7 +502,7 @@ class TaskManagerGUI(tk.Tk):
 
         self._draw_gantt(scheduler)
 
-    def _draw_gantt(self, scheduler: Scheduler):
+    def _draw_gantt(self, scheduler: Scheduler) -> None:
         canvas = self.gantt_canvas
         canvas.delete("all")
         canvas.update_idletasks()
