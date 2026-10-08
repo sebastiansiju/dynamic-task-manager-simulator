@@ -16,6 +16,8 @@ from typing import Iterator, List, Optional, Tuple
 
 
 class ProcessState(Enum):
+    """Lifecycle of a Process within a Scheduler run: NEW -> READY -> RUNNING -> COMPLETED."""
+
     NEW = "new"
     READY = "ready"
     RUNNING = "running"
@@ -24,6 +26,9 @@ class ProcessState(Enum):
 
 @dataclass
 class Process:
+    """A simulated process: its static workload plus the state a Scheduler
+    fills in as it runs (remaining time, timestamps, derived waiting time)."""
+
     pid: int
     name: str
     arrival_time: int
