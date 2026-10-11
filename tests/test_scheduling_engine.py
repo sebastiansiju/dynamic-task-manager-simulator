@@ -145,6 +145,24 @@ class PriorityTests(unittest.TestCase):
         s.run()
         self.assertEqual(order_of(s), [1, 2])
 
+    def test_queue_reorders_among_available_processes(self):
+        s = PriorityScheduler(build([
+            (1, "First", 0, 2, 5), (2, "Low", 0, 2, 9), (3, "Urgent", 1, 1, 1),
+        ]))
+        s.run()
+        self.assertEqual(order_of(s), [1, 3, 2])
+
+    def test_running_process_is_not_preempted_by_a_higher_priority_arrival(self):
+        """Priority scheduling here is non-preemptive: a process already
+        dispatched runs to completion even if a more urgent process arrives
+        while it's running."""
+        s = PriorityScheduler(build([
+            (1, "Running", 0, 5, 9), (2, "Urgent", 2, 1, 1),
+        ]))
+        s.run()
+        self.assertEqual(s.timeline[0], (1, "Running", 0, 5))
+        self.assertEqual(order_of(s), [1, 2])
+
 
 class RoundRobinTests(unittest.TestCase):
     def test_no_slice_exceeds_the_quantum(self):
