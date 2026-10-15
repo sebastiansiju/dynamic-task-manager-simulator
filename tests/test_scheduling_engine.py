@@ -282,12 +282,27 @@ class CrossSchedulerTests(unittest.TestCase):
                     self.assertEqual(p.completion_time, last_end[p.pid])
 
     def test_single_process_workload(self):
-        for cls in (FCFSScheduler, SJFScheduler, PriorityScheduler):
+        for cls in (FCFSScheduler, SJFScheduler, PriorityScheduler, RoundRobinScheduler):
             with self.subTest(scheduler=cls.name):
                 s = cls(build([(1, "Solo", 0, 5, 0)]))
                 s.run()
                 self.assertEqual(s.time, 5)
                 self.assertEqual(len(s.completed), 1)
+                self.assertEqual(s.completed[0].waiting_time, 0)
+
+    def test_round_robin_single_process_requeues_itself(self):
+        """With only one process and a quantum smaller than its burst, that
+        process is popped, preempted, and pushed right back onto an
+        otherwise-empty ready queue every slice -- a different code path
+        from the multi-process interleaving tests above, where there is
+        always another process to fill the queue in between. It must still
+        run to completion in multiple slices without waiting, since nothing
+        else is ever competing for the CPU."""
+        s = RoundRobinScheduler(build([(1, "Solo", 0, 7, 0)]), quantum=2)
+        s.run()
+        self.assertEqual([e - st for _p, _n, st, e in s.timeline], [2, 2, 2, 1])
+        self.assertEqual(s.time, 7)
+        self.assertEqual(s.completed[0].waiting_time, 0)
 
 
 if __name__ == "__main__":

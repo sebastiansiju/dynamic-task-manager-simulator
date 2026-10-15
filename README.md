@@ -103,7 +103,7 @@ The engine is decoupled from the GUI, so it is tested without a display:
 python -m unittest discover -s tests -t . -v
 ```
 
-30 tests cover the `Process` dataclass and its computed turnaround time,
+31 tests cover the `Process` dataclass and its computed turnaround time,
 including rejecting a non-positive burst time or a negative arrival time
 (either would corrupt the simulation clock), each scheduler's ordering rule,
 the heap tiebreakers that keep equal keys from comparing `Process` objects,
